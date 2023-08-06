@@ -5,7 +5,7 @@ const token = @import("token.zig");
 const TT = token.TokenType;
 
 pub const Scanner = struct {
-    source: []u8,
+    source: []const u8,
     tokens: std.ArrayList(token.Token),
     start: u32 = 0,
     current: u32 = 0,
@@ -16,7 +16,7 @@ pub const Scanner = struct {
 
     const Self = @This();
 
-    pub fn init(allocator: std.mem.Allocator, source: []u8) !Self {
+    pub fn init(source: []const u8, allocator: std.mem.Allocator) !Self {
         var keywords = std.StringHashMap(TT).init(allocator);
         try keywords.put("and", TT.AND);
         try keywords.put("class", TT.CLASS);
@@ -73,6 +73,13 @@ pub const Scanner = struct {
             '>' => self.addToken(if (self.match('=')) TT.GREATER_EQUAL else TT.GREATER),
             '/' => if (self.match('/')) {
                 while (self.peek() != '\n' and !self.isAtEnd()) _ = self.advance();
+            } else if (self.match('*')) {
+                var deep: i16 = 1;
+                while (deep > 0 and !self.isAtEnd()) {
+                    if (self.match('*') and self.match('/')) deep -= 1;
+                    if (self.match('/') and self.match('*')) deep += 1;
+                    if (self.advance() == '\n') self.line += 1;
+                }
             } else {
                 try self.addToken(TT.SLASH);
             },

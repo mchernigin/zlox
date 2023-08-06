@@ -26,7 +26,7 @@ pub fn main() !u8 {
 
 pub const IntepreterError = error{LexerError};
 
-fn runFile(filename: [:0]u8, allocator: std.mem.Allocator) !void {
+fn runFile(filename: [:0]const u8, allocator: std.mem.Allocator) !void {
     const file = try std.fs.cwd().openFile(filename, .{});
     defer file.close();
 
@@ -52,10 +52,10 @@ fn runPrompt(allocator: std.mem.Allocator) !void {
     }
 }
 
-fn run(source_code: []u8, allocator: std.mem.Allocator) !void {
+fn run(source_code: []const u8, allocator: std.mem.Allocator) !void {
     const stdout = std.io.getStdOut().writer();
 
-    var scnnr: scanner.Scanner = try scanner.Scanner.init(allocator, source_code);
+    var scnnr: scanner.Scanner = try scanner.Scanner.init(source_code, allocator);
     const tokens = try scnnr.scanTokens();
 
     for (tokens.items) |tok| {
@@ -69,6 +69,6 @@ pub fn err(line: u32, message: [:0]const u8) !void {
 
 fn report(line: u32, location: [:0]const u8, message: [:0]const u8) !void {
     const stderr = std.io.getStdErr().writer();
-    try stderr.print("[line {d}] Error{s}: {s}", .{ line, location, message });
+    try stderr.print("[line {d}] Error{s}: {s}\n", .{ line, location, message });
     return IntepreterError.LexerError;
 }
