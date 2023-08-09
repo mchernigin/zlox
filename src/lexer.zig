@@ -18,6 +18,7 @@ pub const Scanner = struct {
 
     pub fn init(source: []const u8, allocator: std.mem.Allocator) !Self {
         var keywords = std.StringHashMap(TT).init(allocator);
+
         try keywords.put("and", TT.AND);
         try keywords.put("class", TT.CLASS);
         try keywords.put("else", TT.ELSE);
@@ -41,6 +42,12 @@ pub const Scanner = struct {
             .allocator = allocator,
             .keywords = keywords,
         };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.tokens.deinit();
+        self.keywords.deinit();
+        self.* = undefined;
     }
 
     pub fn scanTokens(self: *Self) !std.ArrayList(token.Token) {

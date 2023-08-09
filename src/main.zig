@@ -1,6 +1,6 @@
 const std = @import("std");
 const token = @import("token.zig");
-const scanner = @import("scanner.zig");
+const scanner = @import("lexer.zig");
 
 pub fn main() !u8 {
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
@@ -9,10 +9,9 @@ pub fn main() !u8 {
     const args = try std.process.argsAlloc(gpa);
     defer std.process.argsFree(gpa, args);
 
-    const stderr = std.io.getStdErr().writer();
-
     if (args.len > 2) {
-        try stderr.print("Error: too many arguments\n", .{});
+        const stderr = std.io.getStdErr().writer();
+        try stderr.writeAll("Error: too many arguments\n");
         try stderr.print("Usage: {s} [script]\n", .{args[0]});
         return 2;
     } else if (args.len == 2) {
@@ -56,6 +55,8 @@ fn run(source_code: []const u8, allocator: std.mem.Allocator) !void {
     const stdout = std.io.getStdOut().writer();
 
     var scnnr: scanner.Scanner = try scanner.Scanner.init(source_code, allocator);
+    defer scnnr.deinit();
+
     const tokens = try scnnr.scanTokens();
 
     for (tokens.items) |tok| {
