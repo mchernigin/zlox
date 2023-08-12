@@ -20,7 +20,7 @@ pub const Ast = struct {
         self.* = undefined;
     }
 
-    pub fn createBinary(self: *Self, left: *Expr, operator: token.Token, right: *Expr) !Expr {
+    pub fn createBinary(self: *Self, left: Expr, operator: token.Token, right: Expr) !Expr {
         const new_binary: *Binary = try self.allocator.create(Binary);
         new_binary.* = Binary{ .left = left, .operator = operator, .right = right };
         return .{ .Binary = new_binary };
@@ -33,7 +33,7 @@ pub const Ast = struct {
     }
 
     pub fn createGrouping(self: *Self, inner: Expr) !Expr {
-        const new_grouping: *Unary = try self.allocator.create(Unary);
+        const new_grouping: *Grouping = try self.allocator.create(Grouping);
         new_grouping.* = Grouping{ .inner = inner };
         return .{ .Grouping = new_grouping };
     }
@@ -42,21 +42,21 @@ pub const Ast = struct {
 pub const Expr = union(enum) {
     Binary: *Binary,
     Unary: *Unary,
-    Literal: *token.Literal,
+    Literal: token.Literal,
     Grouping: *Grouping,
 };
 
 pub const Binary = struct {
-    left: *Expr,
+    left: Expr,
     operator: token.Token,
-    right: *Expr,
+    right: Expr,
 };
 
 pub const Unary = struct {
     operator: token.Token,
-    right: *Expr,
+    right: Expr,
 };
 
 pub const Grouping = struct {
-    inner: *Expr,
+    inner: Expr,
 };

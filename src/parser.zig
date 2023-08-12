@@ -21,12 +21,12 @@ pub const Parser = struct {
         self.* = undefined;
     }
 
-    pub fn parse(self: *Self) !ast.Expr {
+    pub fn parse(self: *Self) ast.Expr {
         return self.expression();
     }
 
-    fn expression(self: *Self) !ast.Expr {
-        return try self.equality();
+    fn expression(self: *Self) ast.Expr {
+        return self.equality() catch unreachable;
     }
 
     fn equality(self: *Self) !ast.Expr {
@@ -35,7 +35,6 @@ pub const Parser = struct {
         while (self.match(&[_]TT{ TT.BANG_EQUAL, TT.EQUAL_EQUAL })) {
             const operator = self.previous();
             const right = try self.comparison();
-
             expr = try self.ast.createBinary(expr, operator, right);
         }
 
@@ -43,63 +42,68 @@ pub const Parser = struct {
     }
 
     fn comparison(self: *Self) !ast.Expr {
-        var expr = self.term();
+        var expr = try self.term();
 
         while (self.match(&[_]TT{ TT.GREATER, TT.GREATER_EQUAL, TT.LESS, TT.LESS_EQUAL })) {
-            expr.Binary.operator = self.previous();
-            expr.Binary.right = self.term();
+            const operator = self.previous();
+            const right = try self.factor();
+            expr = try self.ast.createBinary(expr, operator, right);
         }
 
         return expr;
     }
 
-    fn term(self: *Self) ast.Expr {
-        var expr = self.factor();
+    fn term(self: *Self) !ast.Expr {
+        var expr = try self.factor();
 
         while (self.match(&[_]TT{ TT.MINUS, TT.PLUS })) {
             const operator = self.previous();
-            const right = self.factor();
-            expr = self.ast.createBinary(expr, operator, right);
+            const right = try self.factor();
+            expr = try self.ast.createBinary(expr, operator, right);
         }
 
         return expr;
     }
 
-    fn factor(self: *Self) *ast.Expr {
-        var expr = self.unary();
+    fn factor(self: *Self) !ast.Expr {
+        var expr = try self.unary();
 
-        while (self.match([]TT{ TT.STAR, TT.SLASH })) {
+        while (self.match(&[_]TT{ TT.STAR, TT.SLASH })) {
             const operator = self.previous();
-            const right = self.unary();
-            expr = self.ast.createBinary(expr, operator, right);
+            const right = try self.unary();
+            expr = try self.ast.createBinary(expr, operator, right);
         }
 
         return expr;
     }
 
-    fn unary(self: *Self) ast.Expr {
-        if (match([]TT{ TT.BANG, TT.MINUS })) {
+    fn unary(self: *Self) !ast.Expr {
+        if (self.match(&[_]TT{ TT.BANG, TT.MINUS })) {
             const operator = self.previous();
-            const right = self.unary();
-            return self.ast.createUnary(operator, right);
+            const right = try self.unary();
+            return try self.ast.createUnary(operator, right);
         }
 
-        return self.primary();
+        return try self.primary();
     }
 
-    fn primary(self: *Self) ast.Expr {
-        if (self.match([]TT{TT.FALSE})) return ast.Expr.Literal{ .Bool = false };
-        if (self.match([]TT{TT.TRUE})) return ast.Expr.Literal{ .Bool = true };
-        if (self.match([]TT{TT.NIL})) return ast.Expr.Literal{.Nil};
-        if (self.match([]TT{ TT.NUMBER, TT.STRING })) return ast.Expr.Literal{ .Number = self.previous().literal.? };
+    fn primary(self: *Self) !ast.Expr {
+        if (self.match(&[_]TT{TT.FALSE})) return ast.Expr{ .Literal = token.Literal{ .Bool = false } };
+        if (self.match(&[_]TT{TT.TRUE})) return ast.Expr{ .Literal = token.Literal{ .Bool = true } };
+        if (self.match(&[_]TT{TT.NIL})) return ast.Expr{ .Literal = token.Literal.Nil };
+        if (self.match(&[_]TT{TT.NUMBER}))
+            return ast.Expr{ .Literal = token.Literal{ .Number = self.previous().literal.?.Number } };
+        if (self.match(&[_]TT{TT.STRING}))
+            return ast.Expr{ .Literal = token.Literal{ .String = self.previous().literal.?.String } };
 
-        if (self.match([]TT{TT.LEFT_PAREN})) {
+        if (self.match(&[_]TT{TT.LEFT_PAREN})) {
             const expr = self.expression();
-            self.consume(TT.RIGHT_PAREN, "Expected ')' after expression.");
-            return ast.Expr.initGrouping(expr);
+            _ = try self.consume(TT.RIGHT_PAREN, "Expected ')' after expression.");
+            return try self.ast.createGrouping(expr);
         }
 
-        return lox.err_from_token(self.peek(), "Expected expression.");
+        try lox.err_from_token(self.peek(), "Expected expression.");
+        return lox.IntepreterError.ParserError;
     }
 
     fn match(self: *Self, token_types: []const TT) bool {
@@ -113,10 +117,11 @@ pub const Parser = struct {
         return false;
     }
 
-    fn consume(self: *Self, tok: token.Token, error_msg: []u8) token.Token {
-        if (self.check(tok)) return self.advance();
+    fn consume(self: *Self, token_type: TT, error_msg: [:0]const u8) !token.Token {
+        if (self.check(token_type)) return self.advance();
 
-        return lox.err_from_token(lox.IntepreterError.ParserError, self.peek(), error_msg);
+        try lox.err_from_token(self.peek(), error_msg);
+        return lox.IntepreterError.ParserError;
     }
 
     fn synchronize(self: *Self) void {
@@ -147,7 +152,7 @@ pub const Parser = struct {
     }
 
     fn peek(self: *Self) token.Token {
-        return self.tokens[self.current];
+        return self.tokens.items[self.current];
     }
 
     fn previous(self: *Self) token.Token {

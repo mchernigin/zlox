@@ -64,7 +64,7 @@ fn run(source_code: []const u8, allocator: std.mem.Allocator) !void {
     var prsr: parser.Parser = parser.Parser.init(tokens);
     defer prsr.deinit();
 
-    const expression: ast.Expr = try prsr.parse();
+    const expression: ast.Expr = prsr.parse();
 
     try stdout.print("{any}\n", .{expression});
 }
@@ -74,22 +74,20 @@ pub const IntepreterError = error{
     ParserError,
 };
 
-pub fn err(err_type: IntepreterError, line: u32, message: [:0]const u8) !void {
+pub fn err(line: u32, message: [:0]const u8) !void {
     try report(line, "", message);
-    return err_type;
 }
 
-pub fn err_from_token(err_type: type, tok: token.Token, message: [:0]const u8) !void {
+pub fn err_from_token(tok: token.Token, message: [:0]const u8) !void {
     if (tok.token_type == TT.EOF) {
-        report(tok.line, " at end", message);
+        try report(tok.line, " at end", message);
     } else {
-        report(tok.line, "at '" ++ tok.lexeme + "'", message);
+        const location = try std.fmt.allocPrintZ(std.heap.page_allocator, "at '{s}'", .{tok.lexeme});
+        try report(tok.line, location, message);
     }
-
-    return err_type;
 }
 
 fn report(line: u32, location: [:0]const u8, message: [:0]const u8) !void {
     const stderr = std.io.getStdErr().writer();
-    try stderr.print("[line {d}] Error{s}: {s}\n", .{ line, location, message });
+    try stderr.print("[line {d}] Error {s}: {s}\n", .{ line, location, message });
 }

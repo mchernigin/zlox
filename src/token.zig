@@ -62,8 +62,8 @@ pub const Literal = union(enum) {
         switch (self) {
             inline .String => |value, tag| try writer.print("{s}({s})", .{ @tagName(tag), value }),
             inline .Number => |value, tag| try writer.print("{s}({d})", .{ @tagName(tag), value }),
-            inline .Bool => |value, tag| try writer.print("{s}({})", .{ @tagName(tag), value }),
-            inline .Nil => |tag| try writer.print("{s}", .{@tagName(tag)}),
+            inline .Bool => |value, tag| try writer.print("{s}({any})", .{ @tagName(tag), value }),
+            inline .Nil => try writer.writeAll("nil"),
         }
     }
 };
