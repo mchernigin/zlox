@@ -99,8 +99,7 @@ pub const Scanner = struct {
             } else if (isAlpha(c)) {
                 try self.identifier();
             } else {
-                try lox.err(self.line, "Unexpected character.");
-                return lox.IntepreterError.LexerError;
+                try lox.err(lox.IntepreterError.LexerError, self.line, "Unexpected character.");
             },
         };
     }
@@ -145,7 +144,7 @@ pub const Scanner = struct {
         }
 
         if (self.isAtEnd()) {
-            try lox.err(self.line, "Unterminated string.");
+            try lox.err(lox.IntepreterError.LexerError, self.line, "Unterminated string.");
             return lox.IntepreterError.LexerError;
         }
 

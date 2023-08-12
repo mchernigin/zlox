@@ -1,6 +1,10 @@
 const std = @import("std");
 const token = @import("token.zig");
 const scanner = @import("lexer.zig");
+const ast = @import("ast.zig");
+const parser = @import("parser.zig");
+
+const TT = token.TokenType;
 
 pub fn main() !u8 {
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
@@ -22,8 +26,6 @@ pub fn main() !u8 {
 
     return 0;
 }
-
-pub const IntepreterError = error{LexerError};
 
 fn runFile(filename: [:0]const u8, allocator: std.mem.Allocator) !void {
     const file = try std.fs.cwd().openFile(filename, .{});
@@ -59,17 +61,35 @@ fn run(source_code: []const u8, allocator: std.mem.Allocator) !void {
 
     const tokens = try scnnr.scanTokens();
 
-    for (tokens.items) |tok| {
-        try stdout.print("{any}\n", .{tok});
-    }
+    var prsr: parser.Parser = parser.Parser.init(tokens);
+    defer prsr.deinit();
+
+    const expression: ast.Expr = try prsr.parse();
+
+    try stdout.print("{any}\n", .{expression});
 }
 
-pub fn err(line: u32, message: [:0]const u8) !void {
+pub const IntepreterError = error{
+    LexerError,
+    ParserError,
+};
+
+pub fn err(err_type: IntepreterError, line: u32, message: [:0]const u8) !void {
     try report(line, "", message);
+    return err_type;
+}
+
+pub fn err_from_token(err_type: type, tok: token.Token, message: [:0]const u8) !void {
+    if (tok.token_type == TT.EOF) {
+        report(tok.line, " at end", message);
+    } else {
+        report(tok.line, "at '" ++ tok.lexeme + "'", message);
+    }
+
+    return err_type;
 }
 
 fn report(line: u32, location: [:0]const u8, message: [:0]const u8) !void {
     const stderr = std.io.getStdErr().writer();
     try stderr.print("[line {d}] Error{s}: {s}\n", .{ line, location, message });
-    return IntepreterError.LexerError;
 }

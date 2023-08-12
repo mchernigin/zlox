@@ -53,6 +53,8 @@ pub const TokenType = enum {
 pub const Literal = union(enum) {
     String: []const u8,
     Number: i64,
+    Bool: bool,
+    Nil,
 
     const Self = @This();
 
@@ -60,6 +62,8 @@ pub const Literal = union(enum) {
         switch (self) {
             inline .String => |value, tag| try writer.print("{s}({s})", .{ @tagName(tag), value }),
             inline .Number => |value, tag| try writer.print("{s}({d})", .{ @tagName(tag), value }),
+            inline .Bool => |value, tag| try writer.print("{s}({})", .{ @tagName(tag), value }),
+            inline .Nil => |tag| try writer.print("{s}", .{@tagName(tag)}),
         }
     }
 };
