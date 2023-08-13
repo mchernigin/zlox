@@ -1,7 +1,8 @@
-const std = @import("std");
 const token = @import("token.zig");
 const ast = @import("ast.zig");
 const lox = @import("main.zig");
+
+const std = @import("std");
 
 const TT = token.TokenType;
 
@@ -13,7 +14,10 @@ pub const Parser = struct {
     const Self = @This();
 
     pub fn init(tokens: std.ArrayList(token.Token)) Self {
-        return .{ .tokens = tokens, .ast = ast.Ast.init() };
+        return .{
+            .tokens = tokens,
+            .ast = ast.Ast.init(),
+        };
     }
 
     pub fn deinit(self: *Self) void {

@@ -1,8 +1,9 @@
-const std = @import("std");
 const token = @import("token.zig");
 const scanner = @import("lexer.zig");
 const ast = @import("ast.zig");
 const parser = @import("parser.zig");
+
+const std = @import("std");
 
 const TT = token.TokenType;
 

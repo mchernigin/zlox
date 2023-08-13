@@ -1,6 +1,7 @@
-const std = @import("std");
 const lox = @import("main.zig");
 const token = @import("token.zig");
+
+const std = @import("std");
 
 const TT = token.TokenType;
 

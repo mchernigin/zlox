@@ -1,5 +1,6 @@
-const std = @import("std");
 const token = @import("token.zig");
+
+const std = @import("std");
 
 pub const Ast = struct {
     arena: std.heap.ArenaAllocator,
@@ -44,6 +45,17 @@ pub const Expr = union(enum) {
     Unary: *Unary,
     Literal: token.Literal,
     Grouping: *Grouping,
+
+    const Self = @This();
+
+    pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) std.os.WriteError!void {
+        switch (self) {
+            inline .Binary => |b| try writer.print("({any} {any} {any})", .{ b.operator, b.left, b.right }),
+            inline .Unary => |u| try writer.print("({any} {any})", .{ u.operator, u.right }),
+            inline .Literal => |l| try writer.print("{any}", .{l}),
+            inline .Grouping => |g| try writer.print("({any})", .{g.inner}),
+        }
+    }
 };
 
 pub const Binary = struct {

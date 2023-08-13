@@ -60,9 +60,9 @@ pub const Literal = union(enum) {
 
     pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) std.os.WriteError!void {
         switch (self) {
-            inline .String => |value, tag| try writer.print("{s}({s})", .{ @tagName(tag), value }),
-            inline .Number => |value, tag| try writer.print("{s}({d})", .{ @tagName(tag), value }),
-            inline .Bool => |value, tag| try writer.print("{s}({any})", .{ @tagName(tag), value }),
+            inline .String => |value| try writer.print("{s}", .{value}),
+            inline .Number => |value| try writer.print("{d}", .{value}),
+            inline .Bool => |value| try writer.print("{any}", .{value}),
             inline .Nil => try writer.writeAll("nil"),
         }
     }
@@ -86,9 +86,6 @@ pub const Token = struct {
     }
 
     pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) std.os.WriteError!void {
-        var token_type_iter = std.mem.splitBackwardsSequence(u8, @tagName(self.token_type), ".");
-        var token_type_name = token_type_iter.first();
-        try writer.print("{d} | {s} \"{s}\"", .{ self.line, token_type_name, self.lexeme });
-        if (self.literal != null) try writer.print(": {any}", .{self.literal});
+        try writer.print("{s}", .{self.lexeme});
     }
 };
